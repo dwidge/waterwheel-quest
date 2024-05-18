@@ -11,25 +11,26 @@ interface GameState {
   villagersAttitude: VillagerAttitude;
 }
 
+const initialState: GameState = {
+  location: "blacksmith",
+  inventory: [],
+  waterWheelFixed: false,
+  villagersAttitude: "neutral",
+};
+
 function App() {
-  const initialState: GameState = {
-    location: "blacksmith",
-    inventory: [],
-    waterWheelFixed: false,
-    villagersAttitude: "neutral",
-  };
-
   const [gameState, setGameState] = useState(initialState);
+  const [message, setMessage] = useState("");
 
-  const displayLocation = (location: Location) => {
+  const { location, inventory, waterWheelFixed, villagersAttitude } = gameState;
+
+  const displayLocation = () => {
     switch (location) {
       case "blacksmith":
         return "You are at the blacksmith's shop. You can go to the village.";
       case "village":
         return `You are in the village center. You see villagers around. You can go to the blacksmith, the well, or talk to villagers. ${
-          gameState.waterWheelFixed
-            ? "The villagers are happy and greet you warmly."
-            : ""
+          waterWheelFixed ? "The villagers are happy and greet you warmly." : ""
         }`;
       case "well":
         return "You are by the well. You can go down the well using the bucket.";
@@ -40,83 +41,95 @@ function App() {
     }
   };
 
-  const go = (location: Location) => {
-    setGameState({ ...gameState, location });
+  const go = (newLocation: Location) => {
+    setGameState({ ...gameState, location: newLocation });
   };
 
   const take = (item: Item) => {
-    if (gameState.location === "bottomOfWell" && item === "alternatorPiece") {
-      setGameState({ ...gameState, inventory: [...gameState.inventory, item] });
-    } else if (gameState.location === "blacksmith" && item === "magnet") {
-      setGameState({ ...gameState, inventory: [...gameState.inventory, item] });
+    if (location === "bottomOfWell" && item === "alternatorPiece") {
+      setGameState({ ...gameState, inventory: [...inventory, item] });
+    } else if (location === "blacksmith" && item === "magnet") {
+      setGameState({ ...gameState, inventory: [...inventory, item] });
     }
   };
 
   const talkToVillagers = () => {
-    if (gameState.location === "village") {
-      if (gameState.waterWheelFixed) {
-        return "The villagers thank you for fixing the water wheel. They are now friendly towards you.";
+    if (location === "village") {
+      if (waterWheelFixed) {
+        setMessage(
+          "The villagers thank you for fixing the water wheel. They are now friendly towards you."
+        );
       } else {
-        return "The villagers are busy and seem indifferent to you.";
+        setMessage("The villagers are busy and seem indifferent to you.");
       }
-    } else {
-      return "There are no villagers here to talk to.";
     }
   };
 
   const useItem = (item: Item, target: string) => {
-    if (gameState.inventory.includes(item)) {
+    if (inventory.includes(item)) {
       if (
         item === "alternatorPiece" &&
         target === "waterWheel" &&
-        gameState.location === "village"
+        location === "village"
       ) {
         setGameState({
           ...gameState,
           waterWheelFixed: true,
           villagersAttitude: "friendly",
         });
-        return "You use the alternator piece to fix the water wheel. The wheel starts turning, and water flows again.";
-      } else {
-        return "You can't use that item here.";
+        setMessage(
+          "You use the alternator piece to fix the water wheel. The wheel starts turning, and water flows again."
+        );
       }
-    } else {
-      return "You don't have that item.";
     }
   };
 
   return (
     <div>
       <h1>Waterwheel Quest - A Text Adventure</h1>
-      <p>{displayLocation(gameState.location)}</p>
+      <p>{displayLocation()}</p>
       <div>
-        <button onClick={() => go("blacksmith")}>Go to Blacksmith</button>
-        <button onClick={() => go("village")}>Go to Village</button>
-        <button onClick={() => go("well")}>Go to Well</button>
-        {gameState.location === "well" && (
+        {location !== "blacksmith" && (
+          <button onClick={() => go("blacksmith")}>Go to Blacksmith</button>
+        )}
+        {location !== "village" && (
+          <button onClick={() => go("village")}>Go to Village</button>
+        )}
+        {location !== "well" && location !== "bottomOfWell" && (
+          <button onClick={() => go("well")}>Go to Well</button>
+        )}
+        {location === "well" && (
           <button onClick={() => go("bottomOfWell")}>Go Down the Well</button>
         )}
       </div>
       <div>
-        <button onClick={() => take("magnet")}>Take Magnet</button>
-        {gameState.location === "bottomOfWell" && (
-          <button onClick={() => take("alternatorPiece")}>
-            Take Alternator Piece
-          </button>
+        {location === "blacksmith" && !inventory.includes("magnet") && (
+          <button onClick={() => take("magnet")}>Take Magnet</button>
+        )}
+        {location === "bottomOfWell" &&
+          !inventory.includes("alternatorPiece") && (
+            <button onClick={() => take("alternatorPiece")}>
+              Take Alternator Piece
+            </button>
+          )}
+      </div>
+      <div>
+        {location === "village" && (
+          <button onClick={talkToVillagers}>Talk to Villagers</button>
         )}
       </div>
       <div>
-        <button onClick={() => alert(talkToVillagers())}>
-          Talk to Villagers
-        </button>
+        {location === "village" &&
+          inventory.includes("alternatorPiece") &&
+          !waterWheelFixed && (
+            <button onClick={() => useItem("alternatorPiece", "waterWheel")}>
+              Use Alternator Piece on Water Wheel
+            </button>
+          )}
       </div>
       <div>
-        <button onClick={() => alert(useItem("alternatorPiece", "waterWheel"))}>
-          Use Alternator Piece on Water Wheel
-        </button>
-      </div>
-      <div>
-        <p>Inventory: {gameState.inventory.join(", ") || "None"}</p>
+        <p>Inventory: {inventory.join(", ") || "None"}</p>
+        {message && <p>{message}</p>}
       </div>
     </div>
   );
