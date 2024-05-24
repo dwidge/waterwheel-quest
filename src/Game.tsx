@@ -1,142 +1,76 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { Transition, initialStates, transitions } from "./transitions";
+import { mainStyle } from "./mainStyle";
 
-interface Location {
-  description: string;
-  conditions?: { [key: string]: string };
-  actions: {
-    go?: string[];
-    take?: string[];
-    talkToVillagers?: boolean;
-    use?: { [key: string]: string };
-  };
-}
+const maxAutoTransitionsPerTurn = 30;
 
-interface GameState {
-  location: string;
-  inventory: string[];
-  waterWheelFixed: boolean;
-  villagersAttitude?: string;
-  [key: string]: any;
-}
+const isNextTransition = (state: string[]) => (transition: Transition) =>
+  transition.prev.every((prevState) => state.includes(prevState));
 
-interface GameProps {
-  data: {
-    initialState: GameState;
-    locations: { [key: string]: Location };
-    messages: {
-      villagersFriendly: string;
-      villagersNeutral: string;
-      wheelFixed: string;
-    };
-  };
-}
+const isAutoTransition = (transition: Transition) => !transition.action;
 
-function Game({ data }: GameProps) {
-  const initialState: GameState = data.initialState;
-  const [gameState, setGameState] = useState<GameState>(initialState);
-  const [message, setMessage] = useState<string>("");
+const isActionTransition = (transition: Transition) => transition.action;
 
-  const { location, inventory, waterWheelFixed } = gameState;
-  const currentLocation: Location = data.locations[location];
+const applyTransition = (currentState: string[], transition: Transition) =>
+  currentState
+    .filter((state) => !transition.prev.includes(state))
+    .concat(transition.next);
 
-  const displayLocation = (): string => {
-    let description = currentLocation.description;
-    if (currentLocation.conditions) {
-      for (const condition in currentLocation.conditions) {
-        if (gameState[condition]) {
-          description += ` ${currentLocation.conditions[condition]}`;
-        }
-      }
-    }
-    return description;
-  };
+const unique = <T,>(a: T[]) => [...new Set(a)];
 
-  const handleAction = (action: string, target?: string): void => {
-    switch (action) {
-      case "go":
-        if (target) {
-          setGameState({ ...gameState, location: target });
-        }
-        break;
-      case "take":
-        if (target && !inventory.includes(target)) {
-          setGameState({ ...gameState, inventory: [...inventory, target] });
-        }
-        break;
-      case "talkToVillagers":
-        if (waterWheelFixed) {
-          setMessage(data.messages.villagersFriendly);
-        } else {
-          setMessage(data.messages.villagersNeutral);
-        }
-        break;
-      case "use":
-        if (target && inventory.includes(target)) {
-          if (target === "alternatorPiece" && location === "village") {
-            setGameState({
-              ...gameState,
-              waterWheelFixed: true,
-              villagersAttitude: "friendly",
-            });
-            setMessage(data.messages.wheelFixed);
-          }
-        }
-        break;
-      default:
-        break;
-    }
-  };
+const autoTransitions = transitions.filter(isAutoTransition);
+const actionTransitions = transitions.filter(isActionTransition);
+
+const applyAction = (state: string[], action?: Transition) => {
+  if (action) state = applyTransition(state, action);
+  let fulltext = [action?.narration ?? ""];
+  let newTransitions = autoTransitions;
+
+  for (let i = 0; i < maxAutoTransitionsPerTurn; i++) {
+    const next = newTransitions.filter(isNextTransition(state));
+    if (!next.length) break;
+    const t = next[0];
+    state = applyTransition(state, t);
+    fulltext.push(t.narration ?? "");
+    newTransitions = newTransitions.filter((v) => v.id !== t.id);
+  }
+
+  fulltext = unique(fulltext.filter((s) => s));
+
+  return { state, fulltext };
+};
+
+const initial = applyAction(initialStates);
+
+export const Game: React.FC = () => {
+  const [fulltext, setFulltext] = useState<string[]>(initial.fulltext);
+  const [currentState, setCurrentState] = useState<string[]>(initial.state);
+
+  const possibleTransitions = actionTransitions.filter(
+    isNextTransition(currentState)
+  );
+
+  console.log(currentState);
 
   return (
-    <div>
-      <h1>Waterwheel Quest - A Text Adventure</h1>
-      <p>{displayLocation()}</p>
-      <div>
-        {currentLocation.actions.go &&
-          currentLocation.actions.go.map((loc) => (
-            <button key={loc} onClick={() => handleAction("go", loc)}>
-              Go to {loc.charAt(0).toUpperCase() + loc.slice(1)}
-            </button>
-          ))}
-      </div>
-      <div>
-        {currentLocation.actions.take &&
-          currentLocation.actions.take.map((item) => (
-            <button
-              key={item}
-              onClick={() => handleAction("take", item)}
-              disabled={inventory.includes(item)}
-            >
-              Take {item.charAt(0).toUpperCase() + item.slice(1)}
-            </button>
-          ))}
-      </div>
-      <div>
-        {currentLocation.actions.talkToVillagers && (
-          <button onClick={() => handleAction("talkToVillagers")}>
-            Talk to Villagers
+    <div style={mainStyle}>
+      {fulltext.map((t) => (
+        <div key={t}>{t}</div>
+      ))}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {possibleTransitions.map((transition) => (
+          <button
+            key={transition.id}
+            onClick={() => {
+              const next = applyAction(currentState, transition);
+              setCurrentState(next.state);
+              setFulltext(next.fulltext);
+            }}
+          >
+            {transition.action}
           </button>
-        )}
-      </div>
-      <div>
-        {currentLocation.actions.use &&
-          Object.keys(currentLocation.actions.use).map((item) => (
-            <button
-              key={item}
-              onClick={() => handleAction("use", item)}
-              disabled={!inventory.includes(item) || waterWheelFixed}
-            >
-              Use {item.charAt(0).toUpperCase() + item.slice(1)} on{" "}
-              {currentLocation.actions.use?.[item]}
-            </button>
-          ))}
-      </div>
-      <div>
-        <p>Inventory: {inventory.join(", ") || "None"}</p>
-        {message && <p>{message}</p>}
+        ))}
       </div>
     </div>
   );
-}
-
-export default Game;
+};
