@@ -1,17 +1,67 @@
+import { secretRoomItem } from "./secretRoomItem";
+
 export const title = "Waterwheel Quest";
 
 export const init =
-  "village attic_pan sam_hungry cave_treasure well_bottom_magnet waterwheel_broken";
+  "village attic_pan sam_hungry cave_treasure well_bottom_magnet lamp_broken waterwheel_broken waterwheel_stall_key hidden_market_stall_coil";
 
 export default `
+waterwheel waterwheel_broken : waterwheel waterwheel_broken
+The waterwheel is broken.
+
+village waterwheel_broken
+The villagers are murmuring about the water situation.
+
+${
+  secretRoomItem({
+    place1: "waterwheel",
+    place1_object_key: "waterwheel_stall_key",
+    object: "axle",
+    secret_room_item: "hidden_market_stall_coil",
+    place2: "market",
+    key: "stall_key",
+    item: "coil",
+    npc: "Jerry",
+    secret_room: "hidden_market_stall",
+  })[1]
+}
+
 blacksmith : blacksmith
 You are at the blacksmith's shop.
+
+blacksmith waterwheel_broken : blacksmith waterwheel_broken
+The blacksmith seems worried.
+
+Talk to blacksmith
+blacksmith : blacksmith talk
+
+blacksmith talk waterwheel_broken : blacksmith
+The blacksmith tells you that the water wheel stopped working. No power getting to his shop.
+
+blacksmith talk : blacksmith
+The blacksmith explains how he came to work here.
 
 Go to village
 blacksmith : village
 
+
+
 village : village
 You are in the village center. You see villagers around.
+
+village lamp_broken
+Some villagers fiddle with the electric street lamp. They discuss why it's not working.
+
+Insert coil into street lamp
+village lamp_broken coil : village lamp_fixed
+You connect the coil to the lamp. The lamp flickers and glows brightly. The villagers thank you profusely and nearly shake your hand off.
+
+village lamp_fixed
+The villagers stare dreamily into the bright_street_light.
+
+Talk to villager
+village lamp_fixed
+The villager mentions seeing a suspicious figure near the waterwheel last night.
 
 Go to blacksmith
 village : blacksmith
@@ -19,33 +69,47 @@ village : blacksmith
 Go to well
 village : well
 
-Go to village
-well : village
+
+
 
 well : well
-You are by the well.
+You are by the well. It looks deep and dark.
 
 Go down the well using the bucket
 well : well_bottom
 
 well_bottom : well_bottom
-You are at the bottom of the well. It's dark.
+You are at the bottom of the well. It's dark and damp.
+
+well_bottom well_bottom_magnet : well_bottom well_bottom_magnet
+You see a faint glimmer.
 
 Take magnet
 well_bottom well_bottom_magnet : well_bottom magnet
+You find a magnet and a piece of cloth stuck to it. The cloth has a strange emblem on it.
 
 Go back up using the bucket
 well_bottom : well
 
+Go to village
+well : village
+
 Go to waterwheel
 well : waterwheel
+
+
+
+Install magnet on waterwheel
+waterwheel waterwheel_broken magnet : waterwheel waterwheel_fixed village_thanks
+You use the magnet to fix the water wheel.
+
+waterwheel waterwheel_fixed
+The waterwheel_turns and creaks. Water splashes on to the cobblestone. The moonlight sparkles in the water droplets.
 
 Go to well
 waterwheel : well
 
-Install magnet on waterwheel
-waterwheel waterwheel_broken magnet : waterwheel waterwheel_fixed village_thanks
-You use the magnet to fix the water wheel. The wheel starts turning, and water flows again.
+
 
 village waterwheel_fixed : village waterwheel_fixed
 The villagers are happy and greet you warmly.
@@ -66,11 +130,13 @@ village waterwheel_fixed : market waterwheel_fixed
 Go to village
 market : village
 
-market : market
-You find yourself amidst the hustle and bustle of the local market. Vendors call out their wares, and colorful stalls line the narrow streets.
+market
+You find yourself amidst the hustle and bustle of the local_night_market. Vendors call out their wares, and colorful stalls line the narrow streets. Everyone has candles and lamps on their tables. The moon casts rays of light.
 
-market : market
+market
 The market is very busy today. People are carrying water in buckets on their shoulders.
+
+
 
 Go to garden
 house : garden
@@ -168,8 +234,8 @@ You are in the attic. There are old boxes here.
 Return to house
 attic : house
 
-house : house
-You are in the house. There are creaky noises.
+house
+You are in a small_old_house. An old persian carpet lines the flagstone floor. A dusty staircase winds up and down. There are creaky noises. The moon peaks through the open window.
 
 Pick flower
 garden : garden flower
@@ -222,8 +288,8 @@ bedroom cooked_fish sam_hungry : bedroom sam_happy
 Go to rooftop
 house : rooftop
 
-rooftop : rooftop
-You are on the rooftop. The view of the city is breathtaking.
+rooftop
+You are on the open_rooftop of a small house. The view of the city in the distance is breathtaking.
 
 Stargaze
 rooftop : rooftop_stargaze
